@@ -26,5 +26,20 @@ module serial_to_parallel
     // Note:
     // Check the waveform diagram in the README for better understanding.
 
+    logic[width - 1:0] buffer;
+    logic[$clog2(width) - 1:0] cnt;
+
+    always_ff @ (posedge clk) begin
+        if (rst) begin
+            cnt <= 0;
+            parallel_data <= 0;
+        end 
+        else if (serial_valid) begin
+            cnt <= cnt + 1;
+            parallel_data <= {serial_data, parallel_data[width - 1 : 1]};
+        end
+
+        parallel_valid <= (cnt == 'b111) & serial_valid;
+    end
 
 endmodule

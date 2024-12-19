@@ -42,4 +42,89 @@ module formula_1_impl_2_fsm
     // You can download this issue from https://fpga-systems.ru/fsm
 
 
+    // FSM
+
+    enum logic [2:0]
+    {
+        st_idle         = 3'd0,
+        st_first        = 3'd1,
+        st_second       = 3'd2
+    }
+    state, next_state;
+
+    always_comb
+    begin
+        next_state = state;
+
+        case (state)
+        st_idle    : if ( arg_vld     )   next_state = st_first;
+        st_first   : if ( isqrt_1_y_vld ) next_state = st_second;
+        st_second  : if ( isqrt_1_y_vld ) next_state = st_idle;
+        endcase
+    end
+
+    always_ff @ (posedge clk)
+        if (rst)
+            state <= st_idle;
+        else
+            state <= next_state;
+
+    // Datapath
+
+    always_comb
+    begin
+        isqrt_1_x_vld = '0;
+        isqrt_2_x_vld = '0;
+
+        case (state)
+        st_idle       : 
+        begin
+            isqrt_1_x_vld = arg_vld;
+            isqrt_2_x_vld = arg_vld;
+        end
+
+        st_first : 
+        begin
+            isqrt_1_x_vld = isqrt_1_y_vld;
+            isqrt_2_x_vld = '0;
+        end
+        endcase
+    end
+
+    always_comb
+    begin
+        isqrt_1_x = 'x;  // Don't care
+        isqrt_2_x = 'x;  // Don't care
+
+        case (state)
+        st_idle : 
+        begin
+            isqrt_1_x = a;
+            isqrt_2_x = b;
+        end
+        st_first :  
+        begin
+            isqrt_1_x = c;
+            isqrt_2_x = 'x;
+        end
+        endcase
+    end
+
+    // The result
+
+    always_ff @ (posedge clk)
+        if (rst)
+            res_vld <= '0;
+        else
+            res_vld <= (state == st_second & isqrt_1_y_vld);
+
+    always_ff @ (posedge clk)
+        if (state == st_idle)
+            res <= '0;
+        else if (state == st_first & isqrt_1_y_vld)
+                res <= (res + isqrt_1_y) + isqrt_2_y;
+        else if (state == st_second & isqrt_1_y_vld)
+                res <= res + isqrt_1_y;
+           
+
 endmodule

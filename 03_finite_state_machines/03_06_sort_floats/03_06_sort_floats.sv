@@ -81,10 +81,70 @@ module sort_three_floats (
     //
     // Notes:
     // res0 must be less or equal to the res1
-    // res1 must be less or equal to the res1
+    // res1 must be less or equal to the res2
     //
     // The FLEN parameter is defined in the "import/preprocessed/cvw/config-shared.vh" file
     // and usually equal to the bit width of the double-precision floating-point number, FP64, 64 bits.
 
+    
+    // order position
+    // order[0] is 0 leq 2
+    // order[1] is 1 leq 2
+    // order[2] is 0 leq 1
+    enum logic [2:0]
+    {
+        st_a        = 3'b000, // 0 >  1 1 >  2 0 >  2: {2 < 1 < 0}
+        st_b        = 3'b001, // 0 >  1 1 >  2 0 <= 2: {error}
+        st_c        = 3'b010, // 0 >  1 1 <= 2 0 >  2: {1 < 2 < 0}
+        st_d        = 3'b011, // 0 >  1 1 <= 2 0 <= 2: {1 < 0 < 2}
+        st_e        = 3'b100, // 0 <= 1 1 >  2 0 >  2: {2 < 0 < 1}
+        st_f        = 3'b101, // 0 <= 1 1 >  2 0 <= 2: {0 < 2 < 1}
+        st_g        = 3'b110, // 0 <= 1 1 <= 2 0 >  2: {error}
+        st_h        = 3'b111  // 0 <= 1 1 <= 2 0 <= 2: {0 < 1 < 2}
+    } order;
+
+    wire [3:0] error;
+    logic [1:0] compare_error;
+
+    f_less_or_equal u0_u1
+    (
+        .a   ( unsorted [0] ),
+        .b   ( unsorted [1] ),
+        .res ( order[2]     ),
+        .err ( error[0]     )
+    );
+
+    f_less_or_equal u1_u2
+    (
+        .a   ( unsorted [1] ),
+        .b   ( unsorted [2] ),
+        .res ( order[1]     ),
+        .err ( error[1]     )
+    );
+
+    f_less_or_equal u0_u2
+    (
+        .a   ( unsorted [0] ),
+        .b   ( unsorted [2] ),
+        .res ( order[0]     ),
+        .err ( error[2]     )
+    );
+
+    always_comb begin
+        compare_error = 2'b00;
+
+        case (order)
+            st_a: sorted = { unsorted[2], unsorted[1], unsorted[0] };
+            st_b: compare_error[0] = 1'b1; 
+            st_c: sorted = { unsorted[1], unsorted[2], unsorted[0] };
+            st_d: sorted = { unsorted[1], unsorted[0], unsorted[2] };
+            st_e: sorted = { unsorted[2], unsorted[0], unsorted[1] };
+            st_f: sorted = { unsorted[0], unsorted[2], unsorted[1] };
+            st_g: compare_error[1] = 1'b1;
+            st_h: sorted = { unsorted [0], unsorted [1], unsorted [2] };
+        endcase
+    end
+
+    assign err = error[0] | error[1] | error[2] | compare_error[0] | compare_error[1];
 
 endmodule

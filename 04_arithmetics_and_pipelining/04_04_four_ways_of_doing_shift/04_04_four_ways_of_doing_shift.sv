@@ -63,6 +63,8 @@ module right_shift_of_N_by_S_using_right_shift_operation
   // using logical right shift operation
 
 
+  assign res = a >> S;
+
 endmodule
 
 // We are ignoring some bits on purpose
@@ -79,6 +81,8 @@ module right_shift_of_N_by_S_using_concatenation
   // using concatenation operation
 
 
+  assign res = { S'(0), a[N - 1:S]};
+
 endmodule
 
 // verilator lint_on UNUSEDSIGNAL
@@ -94,6 +98,10 @@ module right_shift_of_N_by_S_using_for_inside_always
   // using "for" inside "always_comb"
 
 
+  always_comb
+    for (int i = 0; i < N; i ++)
+      res [i] = i >= N - S ? 1'b0 : a [i + S];
+
 endmodule
 
 module right_shift_of_N_by_S_using_for_inside_generate
@@ -106,5 +114,17 @@ module right_shift_of_N_by_S_using_for_inside_generate
   // that shifts the unsigned input by S bits to the right
   // sing "generate" and "for"
 
+
+  genvar i;
+
+  generate
+    for (i = 0; i < 8; i ++)
+      if (i >= N - S) begin : zero_bit_gen
+        assign res [i] = 1'b0;
+      end
+      else begin : shifted_bit_gen
+        assign res [i] = a [i + 3];
+      end
+  endgenerate
 
 endmodule

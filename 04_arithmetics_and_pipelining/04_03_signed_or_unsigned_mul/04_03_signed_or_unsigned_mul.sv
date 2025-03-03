@@ -52,5 +52,19 @@ module signed_or_unsigned_mul
   input                signed_mul,
   output [2 * n - 1:0] res
 );
+  logic [n - 1:0] a_tmp;
+  logic [n - 1:0] b_tmp;
+  logic [2 * n - 1:0] out_tmp;
+  logic [2 * n - 1:0] out;
+
+  always_comb begin
+    a_tmp = (signed_mul & a[n - 1]) ? -a : a;
+    b_tmp = (signed_mul & b[n - 1]) ? -b : b;
+
+    out_tmp = a_tmp * b_tmp;
+    out = (signed_mul & (a[n - 1] ^ b[n - 1])) ? -out_tmp : out_tmp;
+  end
+
+  assign res = out;
 
 endmodule
